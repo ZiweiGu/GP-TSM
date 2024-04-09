@@ -1,7 +1,9 @@
 # GP-TSM
 **[An AI-Resilient Text Rendering Technique for Reading and Skimming Documents](https://www.ziweigu.com/assets/data/gptsm.pdf)**  
 Ziwei Gu, Ian Arawjo, Kenneth Li, Jonathan K. Kummerfeld, Elena L. Glassman
-*The 2024 ACM CHI conference on Human Factors in Computing Systems*
+
+To Appear in *The 2024 ACM CHI conference on Human Factors in Computing Systems*
+
 *CHI ’24, May 11–16, 2024, Honolulu, HI, USA* 
 
 
