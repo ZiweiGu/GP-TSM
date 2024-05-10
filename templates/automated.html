@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta id="jinja_data" data-first="{{sentence_list|length}}">
+  <title>GPTSM</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.js"></script>
+  <style>
+
+    #help {
+      color:#ffffff !important; 
+      margin-left: 3px;
+      position: absolute; 
+      top: 50%; 
+      -ms-transform: translateY(-50%); 
+      transform: translateY(-50%);
+    }
+
+    table {
+      table-layout: fixed;
+      max-width: 815px; 
+    }
+
+    #snackbar {
+      visibility: hidden;
+      min-width: 250px;
+      margin-left: -125px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 2px;
+      padding: 16px;
+      position: fixed;
+      z-index: 1;
+      left: 50%;
+      bottom: 30px;
+      font-size: 17px;
+    }
+
+    #snackbar.show {
+      visibility: visible;
+      -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+      animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    }
+
+    @-webkit-keyframes fadein {
+      from {bottom: 0; opacity: 0;} 
+      to {bottom: 30px; opacity: 1;}
+    }
+
+    @keyframes fadein {
+      from {bottom: 0; opacity: 0;}
+      to {bottom: 30px; opacity: 1;}
+    }
+
+    @-webkit-keyframes fadeout {
+      from {bottom: 30px; opacity: 1;} 
+      to {bottom: 0; opacity: 0;}
+    }
+
+    @keyframes fadeout {
+      from {bottom: 30px; opacity: 1;}
+      to {bottom: 0; opacity: 0;}
+    }
+
+  </style>
+</head>
+
+<body>
+
+
+  <!-- <div id="loading"></div> -->
+  <div style="margin-top: 20px; width: 94% !important;" class="ui container">
+    
+    <a href="/"><h1 id="page_info" class="ui center aligned blue header">GP-TSM Demo</h1></a>
+    <div class="ui grid">
+      <div class="sixteen wide column">
+        <p style="color: red;">
+        {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="{{ category }}" style="color: red;">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    </p>
+
+    <p>This is a demo of <strong>GP-TSM (Grammar-Preserving Text Saliency Modulation)</strong>, a text rendering technique aimed at enhancing reading and skimming experiences. This technique is detailed in our paper presented at CHI 2024:</p>
+    <p><u>An AI-Resilient Text Rendering Technique for Reading and Skimming Documents</u>.<br>Ziwei Gu, Ian Arawjo, Kenneth Li, Jonathan K. Kummerfeld, Elena L. Glassman. <br><em>In the 2024 ACM CHI conference on Human Factors in Computing Systems<br>CHI 2024, May 11-16, 2024, Honolulu, HI, USA</em> <br><a href="https://www.ziweigu.com/assets/data/gptsm.pdf">Read the full paper here.</a></p>
+    <p>The purpose of this web demo is for you to explore and assess whether GP-TSM may be helpful to you. Please input any text you are comfortable sharing below. <strong>Do not input any private or sensitive information.</strong> Note that while GP-TSM has been tested on GRE reading passages, its effectiveness on other types of text may vary.</p>
+
+    <p>You will be asked to enter your OpenAI API key. Please note that we do not track or store your API key in any way—it is only required for making calls to OpenAI's GPT-4 large language model, which GP-TSM depends on. 
+      Typically, the system makes about 50-100 API calls for each paragraph you input. If you have concerns about this usage, or if you wish to try our tool but do not have an OpenAI API key, please contact us at ziweigu@g.harvard.edu.
+    </p>
+
+
+
+        <form action="/add_paragraph" method="post" class="ui form">
+          <!-- <div>
+          <label for="semantic">minimum semantic closeness: </label>
+          0 <input type="range" id="semantic" name="semantic" min="0" max="1" step="0.01" value="0"> 1
+        </div>
+        <div>
+          <label for="grammar">minimum grammar score: </label>
+          0 <input type="range" id="grammar" name="grammar" min="0" max="1" step="0.5" value="0"> 1
+        </div> -->
+        <!-- <br> -->
+          <div class="field">
+            <label for="paragraph">Please enter some text:</label>
+            <textarea type="text" id="textarea" name="paragraph" placeholder="Paste some sentences here" maxlength="1000" required oninput="updateCharacterCount()"></textarea>
+            <label id="countLabel">1000 characters left</label>
+
+
+            <label for="key">Please enter your OpenAI API key:</label>
+            <input type="text" id="key" name="key" required minlength="1" maxlength="100" size="10" />
+          </div>
+          <button type="submit" class="ui primary button" onclick="load()">Submit</button>
+        </form>
+
+        <br>
+        <br>
+
+
+        <div class="ui toggle checkbox">
+          <input id="visualize" type="checkbox" name="visualize" checked>
+          <label>Visualize Levels</label>
+        </div>
+
+        <!-- <div class="ui toggle checkbox" style="margin-left: 1%;">
+          <input id="edit" type="checkbox" name="edit">
+          <label>Edit Mode</label>
+        </div> -->
+
+        <br>
+        <br>
+
+        <table id="sentenceTable" cellpadding ="10">
+          <!-- <col style="width:15%">
+	        <col> -->
+            <thead>
+              <tr>
+                  <th>paragraph #</th>
+                  <th>paragraphs</th>
+                  <!-- <th>semantic score</th>
+                  <th>grammar score</th>
+                  <th>paraphrase score</th> -->
+              </tr>
+            </thead>
+            <tbody>
+                {% for sentence in sentence_list %}
+                <tr>
+                <td>{{ sentence.id }}</td>
+                <td>
+                    <div id="{{ sentence.id }}" style="display: none;" >{{ sentence.l0 |safe}}</div>
+                    <div id="v{{ sentence.id }}" style="display: block;" >{{ sentence.vl0 |safe}}</div>
+                </td>
+                <!-- <td>{{ sentence.semantic_score }}</td>
+                <td>{{ sentence.grammar_score }}</td>
+                <td>{{ sentence.paraphrase_score }}</td> -->
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div id="snackbar">User activity logs downloaded successfully!</div>
+      </div>
+
+
+    </div>
+  </div>
+
+  <script>
+    function updateCharacterCount() {
+        var textarea = document.getElementById('textarea');
+        var countLabel = document.getElementById('countLabel');
+        var maxLength = textarea.getAttribute('maxlength');
+        var currentLength = textarea.value.length;
+        countLabel.innerHTML = (maxLength - currentLength) + " characters left";
+    }
+
+    // function load() {
+    //   document.getElementById("loading").style.display = "block";
+    // }
+
+    // window.onload = function logInit() {
+    //   // Retrieve the existing user actions from Local Storage
+    //   const storedActions = localStorage.getItem("userActions");
+    //   const userActions = storedActions ? JSON.parse(storedActions) : [];
+
+
+    //   // Add the new action with a timestamp
+    //   userActions.push({
+    //     action: "entered_page",
+    //     page: document.getElementById("page_info").innerHTML,
+    //     timestamp: new Date().toISOString()
+    //   });
+
+    //   // Save the updated user actions array to Local Storage
+    //   localStorage.setItem("userActions", JSON.stringify(userActions));
+    // };
+
+    const viz_toggle = document.getElementById('visualize');
+
+    viz_toggle.addEventListener('change', (event) => {
+      if (event.currentTarget.checked) {
+        for (let i = 1; i < $('#jinja_data').data().first + 1; i++) {
+          $('#'+i).css('display', 'none');
+          $('#v'+i).css('display', 'block');
+        }
+      } else {
+        for (let i = 1; i < $('#jinja_data').data().first + 1; i++) {
+          $('#v'+i).css('display', 'none');
+          $('#'+i).css('display', 'block');
+        }
+      }
+    });
+
+    window.addEventListener(
+      "keyup",
+      (event) => {
+        if (event.defaultPrevented) {
+          return; // Do nothing if the event was already processed
+        }
+
+        switch (event.key) {
+          case "Control": // IE/Edge specific value
+            $('#visualize').click();
+        
+          default:
+            return; // Quit when this doesn't handle the key event.
+        }
+
+        // Cancel the default action to avoid it being handled twice
+        event.preventDefault();
+      },
+      true
+    );
+
+
+    document.getElementById("visualize").addEventListener("click", function() {
+      logUserAction("vis_button_click");
+    });
+
+
+  </script>
+
+</body>
+</html>
