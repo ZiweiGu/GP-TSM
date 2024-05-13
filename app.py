@@ -1,5 +1,9 @@
 from flask import Flask, render_template, request, flash, redirect, url_for
 import llm
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 app = Flask(__name__) # Initialize the web app
@@ -21,6 +25,7 @@ def automated():
 @app.route('/add_paragraph', methods=['POST'])
 def add_paragraph():
     form_input = request.form.get("paragraph")
+    logger.info(f'User Input: {form_input}')
     k = request.form.get("key")
     sentence_list = []
     paragraphs = [s for s in form_input.split("\n") if len(s) > 2]
