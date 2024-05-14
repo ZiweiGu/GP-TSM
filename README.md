@@ -8,6 +8,8 @@ In *the 2024 ACM CHI conference on Human Factors in Computing Systems*\
 **GP-TSM** is an LLM-powered text rendering technique that supports reading and skimming by reifying recursive sentence compression in text saliency. Readers can skip over de-emphasized segments without compromising their reading flow/ comprehension of the text, while still being able to notice and recover from AI suggestions they disagree with.
 
 * Read the **[full paper](https://www.ziweigu.com/assets/data/gptsm.pdf)**.
+* Try the live demo **[here](https://gptsm-6b7fc3be6bdb.herokuapp.com/)**.
+* For more information, see **[our lab website](https://glassmanlab.seas.harvard.edu/)**.
 
 ## Citation
 ```
