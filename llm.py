@@ -9,7 +9,7 @@ import json
 MAX_DEPTH = 4 #The 'max depth', or number of successive times we'll try to shorten # make it based on semantic distance 
 # semantic score compare with the ORIGINAL paragraph (minimum 1 round; with additional rounds conditioned on score >= threshold)
 TEMPERATURE = 0.8 #The temperature for ChatGPT calls
-N = 5 #The number of responses to request from ChatGPT, for *each* query 
+N = 3 #The number of responses to request from ChatGPT, for *each* query 
 # framing of paper: focus on forgrounding how AI can hallucinate, especially summarization leading to misinformation. Because of that,
 # we design a purely extractive system  "AI-resilient interface design" help humans notice, recover
 # strike editing, redo GRE and open-ended reading; in future work, we mention editing and reading questions
