@@ -45,6 +45,19 @@ def strip_wrapping_quotes(s: str) -> str:
     if s[-1] == '"': s = s[0:-1]
     return s
 
+def extract_new_phrases(sentences):
+    new_phrases = []
+    previous_sentence = ""
+    for sentence in sentences:
+        # Find the part of the sentence that is new compared to the previous one
+        if sentence.startswith(previous_sentence):
+            new_phrase = sentence[len(previous_sentence):]
+        else:
+            new_phrase = sentence
+        new_phrases.append(new_phrase)
+        previous_sentence = sentence
+    return new_phrases
+
 def find_segments(sentence, k):
     openai.api_key = k
     sentence_segmenter = SentenceSegmenterPromptPipeline()
@@ -57,4 +70,4 @@ def find_segments(sentence, k):
         responses = [strip_wrapping_quotes(r) for r in responses]
         if 'yes' in responses[0].lower():
             result.append(candidate)
-    return result
+    return extract_new_phrases(result)
