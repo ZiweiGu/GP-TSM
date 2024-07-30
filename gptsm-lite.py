@@ -2,8 +2,8 @@
 # applications that require a high level of responsiveness or interactivity. It 
 # achieves higher speed by using smaller values for N and MAX_DEPTH and removing
 # grammaticality from evaluation, which is a time-consuming metric to compute. However,
-# this means that the key grammar-preserving feature may be violated at times. To
-# ensure the best quality of output, please use the original version in llm.py. 
+# this may mean that the key grammar-preserving feature can be violated at times. To
+# achieve the best output quality, please use the original version in llm.py. 
 import openai
 from promptengine.pipelines import PromptPipeline
 from promptengine.template import PromptTemplate, PromptPermutationGenerator
