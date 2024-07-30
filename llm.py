@@ -6,10 +6,10 @@ import eval_response
 import json
 
 
-MAX_DEPTH = 4 #The 'max depth', or number of successive times we'll try to shorten # make it based on semantic distance 
+MAX_DEPTH = 10 #The 'max depth', or number of successive times we'll try to shorten # make it based on semantic distance 
 # semantic score compare with the ORIGINAL paragraph (minimum 1 round; with additional rounds conditioned on score >= threshold)
 TEMPERATURE = 0.8 #The temperature for ChatGPT calls
-N = 3 #The number of responses to request from ChatGPT, for *each* query 
+N = 8 #The number of responses to request from ChatGPT, for *each* query 
 # framing of paper: focus on forgrounding how AI can hallucinate, especially summarization leading to misinformation. Because of that,
 # we design a purely extractive system  "AI-resilient interface design" help humans notice, recover
 # strike editing, redo GRE and open-ended reading; in future work, we mention editing and reading questions
@@ -117,6 +117,8 @@ def get_shortened_paragraph(orig_paragraph, k):
         # if best is where no change is present, look at other llm outputs. 
         best_response = response_infos[0]
         cur_depth += 1
+        if len(best_response['reverted']) == len(paragraph):
+            break # No more words are deleted during this round, so quit
         best_responses.append(best_response['reverted'])
         paragraph = best_response["reverted"]
     return for_viz(best_responses)

@@ -70,4 +70,6 @@ def find_segments(sentence, k):
         responses = [strip_wrapping_quotes(r) for r in responses]
         if 'yes' in responses[0].lower():
             result.append(candidate)
+    if len(sentence) > 0 and len(result) == 0:
+        result.append(sentence)
     return extract_new_phrases(result)
