@@ -69,6 +69,9 @@ Run the app (in development mode) with:
 python3 app.py
 ```
 
+For backend only, use the get_shortened_paragraph(orig_paragraph, k) function in llm.py or gptsm-lite.py. The latter is an alternative of the original GP-TSM algorithm that runs faster, and is designed for applications that require a high level of responsiveness or interactivity. However, to get the best output quality, please use the original version in llm.py. 
+
+
 
 ## Researchers
 
