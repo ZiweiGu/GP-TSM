@@ -1,5 +1,8 @@
 # This file is a variant of the original GP-TSM algorithm that runs faster, and is designed for 
-# applications that require a high level of responsiveness or interactivity. To 
+# applications that require a high level of responsiveness or interactivity. It 
+# achieves higher speed by using smaller values for N and MAX_DEPTH and removing
+# grammaticality from evaluation, which is a time-consuming metric to compute. However,
+# this means that the key grammar-preserving feature may be violated at times. To
 # ensure the best quality of output, please use the original version in llm.py. 
 import openai
 from promptengine.pipelines import PromptPipeline
