@@ -25,8 +25,12 @@ function getPageContent() {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("Message received in background script:", request.action);
   if (request.action === "processContent") {
-    // console.log("Content length:", request.content.length);
-    console.log(`Attempting to fetch from ${CONFIG.API_URL}/get-gptsm-sentences`);
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "showLoading" });
+      }
+    });
+
     fetch(`${CONFIG.API_URL}/get-gptsm-sentences`, {
       method: 'POST',
       headers: {
@@ -42,7 +46,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return response.json();
     })
     .then(processedContent => {
-    //   console.log("Received response from server, length:", processedContent.length);
       if (processedContent.length === 0) {
         console.error("Received empty response from server");
         return;
@@ -58,6 +61,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })
     .catch((error) => {
       console.error('Fetch error:', error);
+    })
+    .finally(() => {
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: "hideLoading" });
+        }
+      });
     });
   }
   return true;

@@ -1,5 +1,38 @@
+let loadingBar;
+
+function createLoadingBar() {
+  loadingBar = document.createElement('div');
+  loadingBar.style.position = 'fixed';
+  loadingBar.style.top = '0';
+  loadingBar.style.left = '0';
+  loadingBar.style.width = '0%';
+  loadingBar.style.height = '5px';
+  loadingBar.style.backgroundColor = '#4CAF50';
+  loadingBar.style.transition = 'width 0.3s';
+  loadingBar.style.zIndex = '9999';
+  document.body.appendChild(loadingBar);
+}
+
+function showLoading() {
+  if (!loadingBar) createLoadingBar();
+  loadingBar.style.width = '70%';
+}
+
+function hideLoading() {
+  if (loadingBar) {
+    loadingBar.style.width = '100%';
+    setTimeout(() => {
+      loadingBar.style.width = '0%';
+    }, 300);
+  }
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "updateContent") {
+  if (request.action === "showLoading") {
+    showLoading();
+  } else if (request.action === "hideLoading") {
+    hideLoading();
+  } else if (request.action === "updateContent") {
     document.body.innerHTML = `
       <div id="reader-mode">
         <h1>${document.title}</h1>
