@@ -69,14 +69,12 @@ def get_sentences():
     sentence_list = []
     paragraphs = [s for s in form_input.split("\n") if len(s) > 2]
     for i, paragraph in enumerate(paragraphs):
-        l0 = ''
         vl0 = ''
         try:
             for d in llm.get_shortened_paragraph(paragraph, k):
-                l0 += d['0'] + ' '
                 vl0 += generate_vl0(d['0'], d['1'], d['2'], d['3'], d['4']) + ' '
         except Exception as e:
-            logger.error(f'An authentication error occurred: openai.error.AuthenticationError: Incorrect API key provided', e)
+            logger.error(f'Error: {e}')
             continue
            
         sentence_list.append(
