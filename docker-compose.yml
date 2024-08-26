@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  gptsm-app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5044:5000"
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=production
