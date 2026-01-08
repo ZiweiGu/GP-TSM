@@ -1,6 +1,10 @@
 from flask import Flask, render_template, request, flash, redirect, url_for
 import llm
 import logging
+import warnings
+
+# Suppress urllib3 OpenSSL warning (it's just a warning, not an error)
+warnings.filterwarnings('ignore', message='.*urllib3.*OpenSSL.*')
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,8 +31,18 @@ def add_paragraph():
     form_input = request.form.get("paragraph")
     logger.info(f'User Input: {form_input}')
     k = request.form.get("key")
+    
+    # Clean up API key (remove whitespace)
+    if k:
+        k = k.strip()
+    
+    if not k or len(k) == 0:
+        flash('Please provide an OpenAI API key', 'error')
+        return redirect(url_for('automated'))
+    
     sentence_list = []
     paragraphs = [s for s in form_input.split("\n") if len(s) > 2]
+    
     for i, paragraph in enumerate(paragraphs):
         l0 = ''
         vl0 = ''
@@ -37,7 +51,39 @@ def add_paragraph():
                 l0 += d['0'] + ' '
                 vl0 += generate_vl0(d['0'], d['1'], d['2'], d['3'], d['4']) + ' '
         except Exception as e:
-            flash(f'An authentication error occurred: openai.error.AuthenticationError: Incorrect API key provided', 'error')
+            error_msg = str(e)
+            error_type = type(e).__name__
+            logger.error(f'Error type: {error_type}, Error message: {error_msg}')
+            
+            # Check for OpenAI authentication errors
+            try:
+                from openai import AuthenticationError, APIError, RateLimitError, APIConnectionError
+                if isinstance(e, AuthenticationError):
+                    flash(f'Authentication error: Incorrect API key provided. Please check your API key.', 'error')
+                    logger.error(f'OpenAI AuthenticationError: {error_msg}')
+                elif isinstance(e, RateLimitError):
+                    flash(f'Rate limit error: {error_msg}. Please try again later.', 'error')
+                    logger.error(f'OpenAI RateLimitError: {error_msg}')
+                elif isinstance(e, APIConnectionError):
+                    flash(f'Connection error: {error_msg}. Please check your internet connection.', 'error')
+                    logger.error(f'OpenAI APIConnectionError: {error_msg}')
+                elif isinstance(e, APIError):
+                    if 'authentication' in error_msg.lower() or 'api key' in error_msg.lower() or 'invalid api key' in error_msg.lower() or 'unauthorized' in error_msg.lower():
+                        flash(f'Authentication error: Incorrect API key provided. Please check your API key.', 'error')
+                    else:
+                        flash(f'API error: {error_msg}', 'error')
+                    logger.error(f'OpenAI APIError: {error_msg}')
+                else:
+                    if 'authentication' in error_msg.lower() or 'api key' in error_msg.lower() or 'invalid' in error_msg.lower() or 'unauthorized' in error_msg.lower():
+                        flash(f'Authentication error: Incorrect API key provided. Please check your API key.', 'error')
+                    else:
+                        flash(f'An error occurred: {error_msg}', 'error')
+            except ImportError:
+                # Fallback if OpenAI exceptions can't be imported
+                if 'authentication' in error_msg.lower() or 'api key' in error_msg.lower() or 'invalid' in error_msg.lower() or 'unauthorized' in error_msg.lower():
+                    flash(f'Authentication error: Incorrect API key provided. Please check your API key.', 'error')
+                else:
+                    flash(f'An error occurred: {error_msg}', 'error')
             return redirect(url_for('automated'))
         sentence_list.append({
             'id': i+1,
@@ -118,5 +164,8 @@ def add_linebreaks(p, line_length):
 
 
 if __name__ == "__main__":
+    import os
+    # Use port from environment variable, or default to 5001
+    port = int(os.environ.get('PORT', 5001))
     with app.app_context():
-        app.run(debug=True) 
+        app.run(debug=True, port=port, host='127.0.0.1') 

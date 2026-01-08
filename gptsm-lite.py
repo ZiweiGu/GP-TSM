@@ -4,7 +4,6 @@
 # grammaticality from evaluation, which is a time-consuming metric to compute. However,
 # this may mean that the key grammar-preserving feature can be violated at times. To
 # achieve the best output quality, please use the original version in llm.py. 
-import openai
 from promptengine.pipelines import PromptPipeline
 from promptengine.template import PromptTemplate, PromptPermutationGenerator
 from promptengine.utils import LLM, extract_responses, is_valid_filepath
@@ -48,7 +47,6 @@ def strip_wrapping_quotes(s: str) -> str:
 
 def get_shortened_paragraph(orig_paragraph, k):
     # rst = []
-    openai.api_key = k
     extractive_shortener = ExtractiveShortenerPromptPipeline()
     cur_depth = 0
     best_responses = [orig_paragraph]
@@ -56,7 +54,7 @@ def get_shortened_paragraph(orig_paragraph, k):
     while cur_depth < MAX_DEPTH:
         responses = []
         extractive_shortener.clear_cached_responses()
-        for res in extractive_shortener.gen_responses({"paragraph": paragraph}, LLM.ChatGPT, n=N, temperature=TEMPERATURE):
+        for res in extractive_shortener.gen_responses({"paragraph": paragraph}, LLM.ChatGPT, n=N, temperature=TEMPERATURE, api_key=k):
             responses.extend(extract_responses(res, llm=LLM.ChatGPT))
         responses = [strip_wrapping_quotes(r) for r in responses]
         response_infos = []

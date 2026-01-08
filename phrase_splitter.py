@@ -1,4 +1,3 @@
-import openai
 from promptengine.pipelines import PromptPipeline
 from promptengine.template import PromptTemplate, PromptPermutationGenerator
 from promptengine.utils import LLM, extract_responses
@@ -59,13 +58,12 @@ def extract_new_phrases(sentences):
     return new_phrases
 
 def find_segments(sentence, k):
-    openai.api_key = k
     sentence_segmenter = SentenceSegmenterPromptPipeline()
     result = []
     for candidate in split_and_concatenate(sentence):
         responses = []
         sentence_segmenter.clear_cached_responses()
-        for res in sentence_segmenter.gen_responses({"sentence": candidate}, LLM.ChatGPT, n=1, temperature=TEMPERATURE):
+        for res in sentence_segmenter.gen_responses({"sentence": candidate}, LLM.ChatGPT, n=1, temperature=TEMPERATURE, api_key=k):
             responses.extend(extract_responses(res, llm=LLM.ChatGPT))
         responses = [strip_wrapping_quotes(r) for r in responses]
         if 'yes' in responses[0].lower():

@@ -70,7 +70,21 @@ python3 app.py
 ```
 
 For backend only, use the get_shortened_paragraph(orig_paragraph, k) function in llm.py or gptsm-lite.py. The latter is an alternative of the original GP-TSM algorithm that runs faster, and is designed for applications that require a high level of responsiveness or interactivity. It achieves higher speed by using smaller values for N and MAX_DEPTH and removing
-grammaticality from evaluation, which is a time-consuming metric to compute. However, this may mean that the key grammar-preserving feature can be violated at times. To achieve the best output quality, please use the original version in llm.py. 
+grammaticality from evaluation, which is a time-consuming metric to compute. However, this may mean that the key grammar-preserving feature can be violated at times. To achieve the best output quality, please use the original version in llm.py.
+
+### Testing
+
+Run the test harness to validate the algorithm on test cases:
+
+```bash
+# Run all tests
+python3 test_harness.py YOUR_API_KEY
+
+# Run a specific test
+python3 test_harness.py YOUR_API_KEY "Legal Test 1"
+```
+
+The test harness validates salience relationships in the output and saves results to `test_results.json`. To add new test cases, edit the `load_legal_test_cases()` function in `test_harness.py`. 
 
 
 

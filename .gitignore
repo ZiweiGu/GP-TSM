@@ -3,3 +3,13 @@ instance/
 venv/
 *.DS_Store
 *.sqlite
+
+# Cache and response files
+grammar_checks.json
+shortened_responses.json
+responses.json
+test_results.json
+tgt.json
+
+# Debug scripts (not needed in repo)
+test_api_key_debug.py

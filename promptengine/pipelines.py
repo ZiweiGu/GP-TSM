@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List, Dict, Tuple, Iterator
+from typing import List, Dict, Tuple, Iterator, Optional
 import json
 import os
 from promptengine.utils import LLM, call_chatgpt, is_valid_filepath, is_valid_json
@@ -24,7 +24,7 @@ class PromptPipeline:
         """
         raise NotImplementedError("Please Implement the analyze_response method")
     
-    def gen_responses(self, properties, llm: LLM, n: int = 1, temperature: float = 1.0) -> Iterator[Dict]:
+    def gen_responses(self, properties, llm: LLM, n: int = 1, temperature: float = 1.0, api_key: Optional[str] = None) -> Iterator[Dict]:
         """
             Calls LLM 'llm' with all prompts, and yields responses as dicts in format {prompt, query, response, llm, info}.
 
@@ -67,7 +67,7 @@ class PromptPipeline:
                 continue
 
             # Call the LLM to generate a response
-            query, response = self._prompt_llm(llm, prompt_str, n, temperature)
+            query, response = self._prompt_llm(llm, prompt_str, n, temperature, api_key)
 
             # Save the response to a JSON file
             # NOTE: We do this to save money --in case something breaks between calls, can ensure we got the data!
@@ -106,9 +106,9 @@ class PromptPipeline:
     def clear_cached_responses(self) -> None:
         self._cache_responses({})
 
-    def _prompt_llm(self, llm: LLM, prompt: str, n: int = 1, temperature: float = 1.0) -> Tuple[Dict, Dict]:
+    def _prompt_llm(self, llm: LLM, prompt: str, n: int = 1, temperature: float = 1.0, api_key: Optional[str] = None) -> Tuple[Dict, Dict]:
         if llm is LLM.ChatGPT:
-            return call_chatgpt(prompt, n=n, temperature=temperature)
+            return call_chatgpt(prompt, n=n, temperature=temperature, api_key=api_key)
         else:
             raise Exception(f"Language model {llm} is not supported.")
 
