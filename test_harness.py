@@ -30,7 +30,6 @@ class SalienceAssertion:
     phrase1: str
     phrase2: str
     relation: AssertionType
-    description: str = ""
     nice_to_have: bool = False  # If True, failure is a warning, not an error
 
 
@@ -41,7 +40,6 @@ class TestCase:
     original_text: str
     assertions: List[SalienceAssertion]
     category: str = "legal"  # Category of test (legal, general, etc.)
-    description: str = ""
 
 
 class TestHarness:
@@ -142,8 +140,6 @@ class TestHarness:
         print(f"\n{'='*80}")
         print(f"Running test: {test_case.name}")
         print(f"Category: {test_case.category}")
-        if test_case.description:
-            print(f"Description: {test_case.description}")
         print(f"{'='*80}")
         print(f"Original text ({len(test_case.original_text.split())} words):")
         print(f"  {test_case.original_text[:200]}..." if len(test_case.original_text) > 200 else f"  {test_case.original_text}")
@@ -302,19 +298,16 @@ def load_legal_test_cases() -> List[TestCase]:
         name="Legal Test 1: Impetus and ownership dispute",
         original_text="This is because the impetus which may lead S to seek to be registered as the owner of adjacent land which S formerly thought was already his (or hers) will often be the raising by his neighbour O of a dispute as to his ownership, backed up by evidence in support, which destroys S's belief that it belongs to him, or at least makes his continuing belief unreasonable.",
         category="legal",
-        description="Complex legal sentence about land ownership disputes",
         assertions=[
             SalienceAssertion(
                 phrase1="This is because",
                 phrase2="the impetus",
-                relation=AssertionType.LESS_THAN,
-                description="Opening phrase should have lower salience than main subject"
+                relation=AssertionType.LESS_THAN
             ),
             SalienceAssertion(
                 phrase1="S's belief",
                 phrase2="or at least makes his continuing belief unreasonable",
-                relation=AssertionType.GREATER_THAN,
-                description="Core concept should have higher salience than elaboration"
+                relation=AssertionType.GREATER_THAN
             )
         ]
     ))
@@ -324,19 +317,16 @@ def load_legal_test_cases() -> List[TestCase]:
         name="Legal Test 2: Question of construction",
         original_text="The question of construction to be decided on this appeal arises because it is common ground that, as a matter of pure grammar, the italicised passage in paragraph 5(4)(c) of Schedule 6 can be read in two ways, which I will call constructions A and B.",
         category="legal",
-        description="Legal sentence about construction interpretation",
         assertions=[
             SalienceAssertion(
                 phrase1="The question of construction to be decided on this appeal arises because",
                 phrase2="it is common ground",
-                relation=AssertionType.LESS_THAN,
-                description="Background should have lower salience than main point"
+                relation=AssertionType.LESS_THAN
             ),
             SalienceAssertion(
                 phrase1="the italicised passage in paragraph 5(4)(c) of Schedule 6 can be read in two ways",
                 phrase2="which I will call constructions A and B.",
-                relation=AssertionType.GREATER_THAN,
-                description="Main content should have higher salience than naming"
+                relation=AssertionType.GREATER_THAN
             )
         ]
     ))
@@ -346,25 +336,21 @@ def load_legal_test_cases() -> List[TestCase]:
         name="Legal Test 3: Land registration (Mr Brown)",
         original_text="On 20 September 2002 the respondent Mr Brown was registered as proprietor of a substantial piece of rough, undeveloped land lying to the West of The Promenade, Consett, County Durham (\"the Brown land\").",
         category="legal",
-        description="Land registration record",
         assertions=[
             SalienceAssertion(
                 phrase1="On 20 September 2002",
                 phrase2="the respondent Mr Brown was registered as proprietor",
-                relation=AssertionType.LESS_THAN,
-                description="Date should have lower salience than main action"
+                relation=AssertionType.LESS_THAN
             ),
             SalienceAssertion(
                 phrase1="the respondent Mr Brown was registered as proprietor",
                 phrase2="of a substantial piece of rough, undeveloped land lying to the West of The Promenade, Consett, County Durham",
-                relation=AssertionType.GREATER_THAN,
-                description="Main action should have higher salience than location details"
+                relation=AssertionType.GREATER_THAN
             ),
             SalienceAssertion(
                 phrase1="the Brown land",
                 phrase2="a substantial piece of rough, undeveloped land lying to the West of The Promenade, Consett, County Durham",
                 relation=AssertionType.GREATER_THAN,
-                description="Short reference should have higher salience than full description",
                 nice_to_have=True
             )
         ]
@@ -375,13 +361,11 @@ def load_legal_test_cases() -> List[TestCase]:
         name="Legal Test 4: Land registration (Mr and Mrs Ridley)",
         original_text="On 8 July 2004 the appellants Mr and Mrs Ridley were registered as proprietors of land adjoining part of the Brown land to the North East of it, and also lying to the West of the Promenade, including a dwelling house known as Valley View.",
         category="legal",
-        description="Land registration record for second party",
         assertions=[
             SalienceAssertion(
                 phrase1="On 8 July 2004",
                 phrase2="the appellants Mr and Mrs Ridley were registered as proprietors of land adjoining part of the Brown land",
-                relation=AssertionType.LESS_THAN,
-                description="Date should have lower salience than main action"
+                relation=AssertionType.LESS_THAN
             )
         ]
     ))
