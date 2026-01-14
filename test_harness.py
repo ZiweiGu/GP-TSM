@@ -45,9 +45,10 @@ class TestCase:
 class TestHarness:
     """Test harness for GP-TSM algorithm."""
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, system_message: Optional[str] = None):
         """Initialize test harness with API key."""
         self.api_key = api_key
+        self.system_message = system_message
         self.test_cases: List[TestCase] = []
         self.results: List[Dict] = []
     
@@ -173,7 +174,7 @@ class TestHarness:
         try:
             # Run GP-TSM algorithm
             print("\nRunning GP-TSM algorithm...")
-            result = llm.get_shortened_paragraph(test_case.original_text, self.api_key)
+            result = llm.get_shortened_paragraph(test_case.original_text, self.api_key, system_message=self.system_message)
             
             # Extract levels (result is a list with one dict containing levels '0' through '4')
             if not result or len(result) == 0:

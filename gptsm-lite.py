@@ -45,7 +45,7 @@ def strip_wrapping_quotes(s: str) -> str:
     if s[-1] == '"': s = s[0:-1]
     return s
 
-def get_shortened_paragraph(orig_paragraph, k):
+def get_shortened_paragraph(orig_paragraph, k, system_message: str = None):
     # rst = []
     extractive_shortener = ExtractiveShortenerPromptPipeline()
     cur_depth = 0
@@ -54,7 +54,7 @@ def get_shortened_paragraph(orig_paragraph, k):
     while cur_depth < MAX_DEPTH:
         responses = []
         extractive_shortener.clear_cached_responses()
-        for res in extractive_shortener.gen_responses({"paragraph": paragraph}, LLM.ChatGPT, n=N, temperature=TEMPERATURE, api_key=k):
+        for res in extractive_shortener.gen_responses({"paragraph": paragraph}, LLM.ChatGPT, n=N, temperature=TEMPERATURE, api_key=k, system_message=system_message):
             responses.extend(extract_responses(res, llm=LLM.ChatGPT))
         responses = [strip_wrapping_quotes(r) for r in responses]
         response_infos = []

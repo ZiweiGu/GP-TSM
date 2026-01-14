@@ -16,6 +16,8 @@ N = 2 #The number of responses to request from ChatGPT, for *each* query
 
 GRAMMER_SCORE_RULE = {'A': 1, 'B': 0.5, 'C': 0}
 
+UK_LAW_SYSTEM_MESSAGE = "You are an expert legal assistant. Your goal is to reveal the core legal structure. You MUST aggressively delete specific dates, locations, and citations as they are considered noise here. However, you must PRESERVE legal terms of art (e.g., 'common ground', 'proprietor', 'registered') and the logical flow of the argument. Focus on the main legal action."
+
 EXTRACTIVE_SHORTENER_PROMPT_TEMPLATE = \
 """For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms, while preserving the main meaning of the sentence as much as possible. Be aggressive in removing non-essential phrases, parentheticals, redundant clauses, and details about time/ location. The length of the result should be at most 80 percent of the original length. Important: Please make sure the result remains grammatical!!
 "${paragraph}"
@@ -159,7 +161,7 @@ def _get_parameters_for_aggressiveness(smooth_aggressiveness):
     
     return current_temperature, current_n, optimal_length, use_aggressive
 
-def get_shortened_paragraph(orig_paragraph, k):
+def get_shortened_paragraph(orig_paragraph, k, system_message: str = None):
     # Validate API key
     if not k or not k.strip():
         raise ValueError("API key is required but was not provided or is empty.")
@@ -197,7 +199,7 @@ def get_shortened_paragraph(orig_paragraph, k):
         while cur_depth < MAX_DEPTH:
             responses = []
             extractive_shortener.clear_cached_responses()
-            for res in extractive_shortener.gen_responses({"paragraph": paragraph}, LLM.ChatGPT, n=current_n, temperature=current_temperature, api_key=k):
+            for res in extractive_shortener.gen_responses({"paragraph": paragraph}, LLM.ChatGPT, n=current_n, temperature=current_temperature, api_key=k, system_message=system_message):
                 responses.extend(extract_responses(res, llm=LLM.ChatGPT))
             responses = [strip_wrapping_quotes(r) for r in responses]
             response_infos = []
