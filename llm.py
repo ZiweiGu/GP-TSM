@@ -6,10 +6,10 @@ import json
 import re
 
 
-MAX_DEPTH = 10 #The 'max depth', or number of successive times we'll try to shorten # make it based on semantic distance 
+MAX_DEPTH = 4 #The 'max depth', or number of successive times we'll try to shorten # make it based on semantic distance 
 # semantic score compare with the ORIGINAL paragraph (minimum 1 round; with additional rounds conditioned on score >= threshold)
 TEMPERATURE = 0.8 #The temperature for ChatGPT calls
-N = 8 #The number of responses to request from ChatGPT, for *each* query 
+N = 2 #The number of responses to request from ChatGPT, for *each* query 
 # framing of paper: focus on forgrounding how AI can hallucinate, especially summarization leading to misinformation. Because of that,
 # we design a purely extractive system  "AI-resilient interface design" help humans notice, recover
 # strike editing, redo GRE and open-ended reading; in future work, we mention editing and reading questions
@@ -17,19 +17,19 @@ N = 8 #The number of responses to request from ChatGPT, for *each* query
 GRAMMER_SCORE_RULE = {'A': 1, 'B': 0.5, 'C': 0}
 
 EXTRACTIVE_SHORTENER_PROMPT_TEMPLATE = \
-"""For each sentence in the following paragraph, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms. The length of the result should be at least 80 percent of the original length. Important: Please make sure the result remains grammatical!!
+"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms, while preserving the main meaning of the sentence as much as possible. Be aggressive in removing non-essential phrases, parentheticals, redundant clauses, and details about time/ location. The length of the result should be at most 80 percent of the original length. Important: Please make sure the result remains grammatical!!
 "${paragraph}"
 
 Please do not add any new words or change words, only delete words."""
 
 EXTRACTIVE_SHORTENER_PROMPT_TEMPLATE_AGGRESSIVE = \
-"""For each sentence in the following paragraph, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms. Be more aggressive in removing non-essential phrases, parentheticals, and redundant clauses. The length of the result should be at least 70 percent of the original length (you can delete up to 30% of the text). Important: Please make sure the result remains grammatical!!
+"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms, while preserving the main meaning of the sentence as much as possible. Be more aggressive in removing non-essential phrases, parentheticals, redundant clauses, and details about time/ location. The length of the result should be at most 70 percent of the original length (you must delete at least 30% of the text). Important: Please make sure the result remains grammatical!!
 "${paragraph}"
 
 Please do not add any new words or change words, only delete words."""
 
 GRAMMAR_CHECKER_PROMPT_TEMPLATE = \
-"""Score the following paragraph by how grammatical it is. Be strict in your evaluation - only mark as A if the text is fully grammatically correct with proper sentence structure, subject-verb agreement, and correct word order.
+"""Score the following paragraph from a legal document by how grammatical it is. Be strict in your evaluation - only mark as A if the text is fully grammatically correct with proper sentence structure, subject-verb agreement, and correct word order.
 "${paragraph}"
 
 Answer A for grammatically correct, B for moderately grammatical (minor issues), and C for bad grammar (major grammatical errors). Only respond with one letter."""
@@ -145,11 +145,11 @@ def _calculate_smooth_aggressiveness(word_count):
 def _get_parameters_for_aggressiveness(smooth_aggressiveness):
     """Get temperature, N, and optimal_length based on aggressiveness."""
     # Interpolate parameters smoothly based on aggressiveness (0 = conservative, 1 = aggressive)
-    # Temperature: 0.8 (conservative) -> 0.9 (aggressive)
-    current_temperature = TEMPERATURE + (0.9 - TEMPERATURE) * smooth_aggressiveness
+    # Temperature: 0.1 (conservative) -> 0.1 (aggressive) - fixed at 0.1
+    current_temperature = TEMPERATURE
     
-    # N (number of candidates): 8 (conservative) -> 10 (aggressive)
-    current_n = int(N + (10 - N) * smooth_aggressiveness)
+    # N (number of candidates): 2 (conservative) -> 2 (aggressive) - fixed at 2
+    current_n = N
     
     # Optimal length: 0.6 (conservative) -> 0.5 (aggressive)
     optimal_length = 0.6 - (0.6 - 0.5) * smooth_aggressiveness
@@ -265,8 +265,10 @@ def get_shortened_paragraph(orig_paragraph, k):
 
             response_infos.sort(key=lambda x: x["composite_score"], reverse=True)
             
-            # If no valid responses after filtering, skip this iteration
+            # If no valid responses after filtering, this shouldn't happen with current logic
+            # (we keep C-rated responses if all are C), but handle it gracefully
             if not response_infos:
+                # This edge case shouldn't occur, but if it does, break to avoid errors
                 break
             
             # if best is where no change is present, look at other llm outputs. 
@@ -308,12 +310,18 @@ def get_shortened_paragraph(orig_paragraph, k):
                             new_len = next_new_len
                             reduction_ratio = next_reduction_ratio
                 
-                # Only stop if truly no meaningful reduction occurred
-                if reduction_ratio < (min_reduction_ratio * 0.5) and (original_len - new_len) < (min_words_removed - 1):
+                # Only stop if truly no meaningful reduction occurred AND we're not in the first iteration
+                # This ensures we always try at least once, even with conservative parameters
+                if reduction_ratio < (min_reduction_ratio * 0.5) and (original_len - new_len) < (min_words_removed - 1) and cur_depth > 1:
                     break # No meaningful words are deleted during this round, so quit
             else:
                 # Original stopping condition for shorter sentences
-                if len(best_response['reverted']) == len(paragraph):
+                # Check word count instead of character length for more accurate comparison
+                original_word_count = len(paragraph.split())
+                new_word_count = len(best_response['reverted'].split())
+                # Only stop if no words were deleted AND we're not in the first iteration
+                # This ensures we always try at least once, even with conservative parameters
+                if original_word_count == new_word_count and cur_depth > 1:
                     break # No more words are deleted during this round, so quit
             
             best_responses.append(best_response['reverted'])

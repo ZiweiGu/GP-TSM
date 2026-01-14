@@ -109,40 +109,60 @@ def is_equal(w1, w2):
 
 
 def generate_vl0(l0, l1, l2, l3, l4): # underline
+    """Generate visualization with salience levels.
+    Matches words sequentially across levels to track when each specific word was deleted.
+    Words deleted in earlier rounds get lighter shades (lower salience).
+    
+    Salience levels:
+    - Level 0 (lightest gray): Word cut in first round (appears in l0 but not l1)
+    - Level 1: Word cut in second round (appears in l1 but not l2)
+    - Level 2: Word cut in third round (appears in l2 but not l3)
+    - Level 3: Word cut in fourth round (appears in l3 but not l4)
+    - Level 4 (darkest/black): Word kept through all rounds (appears in l4)
+    """
     l0_lst = l0.split()
-    l1_lst = l1.split()
-    l2_lst = l2.split()
-    l3_lst = l3.split()
-    l4_lst = l4.split()
-    p1 = 0 # pointer
-    p2 = 0 # pointer
-    p3 = 0 # pointer
-    p4 = 0 # pointer
+    l1_lst = l1.split() if l1 else []
+    l2_lst = l2.split() if l2 else []
+    l3_lst = l3.split() if l3 else []
+    l4_lst = l4.split() if l4 else []
+    
+    # Track position pointers for each level to match words sequentially
+    p1 = 0  # pointer for level 1
+    p2 = 0  # pointer for level 2
+    p3 = 0  # pointer for level 3
+    p4 = 0  # pointer for level 4
+    
     rst = ''
     for w in l0_lst:
-        if p1 < len(l1_lst) and not is_equal(w, l1_lst[p1]):
+        # Check if this word matches the word at current pointer in level 1
+        matched_l1 = p1 < len(l1_lst) and is_equal(w, l1_lst[p1])
+        
+        if not matched_l1:
+            # Word doesn't appear in level 1 -> cut in round 1 -> salience 0 (lightest gray)
             rst += ('<span style="color:' + LEVEL_0_OPACITY + '"> ' + w + ' </span> ')
-        elif p1 < len(l1_lst) and is_equal(w, l1_lst[p1]):
+        else:
+            # Word appears in level 1, advance pointer and check deeper levels
             p1 += 1
             matched = False
+            
+            # Check level 4 first (highest salience)
             if p4 < len(l4_lst) and is_equal(w, l4_lst[p4]):
                 p4 += 1
                 rst += ('<span style="color:' + LEVEL_4_OPACITY + '"> ' + bionic(w) + ' </span> ')
                 matched = True
-            if p3 < len(l3_lst) and is_equal(w, l3_lst[p3]):
+            elif p3 < len(l3_lst) and is_equal(w, l3_lst[p3]):
+                # Check level 3
                 p3 += 1
-                if not matched:
-                    rst += ('<span style="color:' + LEVEL_3_OPACITY + '"> ' + w + ' </span> ')
-                    matched = True
-            if p2 < len(l2_lst) and is_equal(w, l2_lst[p2]):
+                rst += ('<span style="color:' + LEVEL_3_OPACITY + '"> ' + w + ' </span> ')
+                matched = True
+            elif p2 < len(l2_lst) and is_equal(w, l2_lst[p2]):
+                # Check level 2
                 p2 += 1
-                if not matched:
-                    rst += ('<span style="color:' + LEVEL_2_OPACITY + '"> ' + w + ' </span> ')
-                    matched = True
-            if not matched:
+                rst += ('<span style="color:' + LEVEL_2_OPACITY + '"> ' + w + ' </span> ')
+                matched = True
+            else:
+                # Word appears in level 1 but not in 2, 3, or 4 -> cut in round 2 -> salience 1
                 rst += ('<span style="color:' + LEVEL_1_OPACITY + '"> ' + w + ' </span> ')
-        else:
-            rst += ('<span style="color:' + LEVEL_0_OPACITY + '"> ' + w + ' </span> ')
     return rst
 
 

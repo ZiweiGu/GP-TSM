@@ -9,7 +9,11 @@ grammar_checks.json
 shortened_responses.json
 responses.json
 test_results.json
+dashboard_test_results.json
 tgt.json
 
 # Debug scripts (not needed in repo)
 test_api_key_debug.py
+
+# Documentation (internal use)
+ALGORITHM_PARAMETERS.md

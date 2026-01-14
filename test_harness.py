@@ -55,49 +55,75 @@ class TestHarness:
         """Add a test case to the harness."""
         self.test_cases.append(test_case)
     
-    def _find_phrase_in_levels(self, phrase: str, levels: Dict[str, str]) -> Optional[int]:
+    def _get_word_salience(self, word: str, levels: Dict[str, str]) -> Optional[int]:
         """
-        Find the deepest level (highest number) where a phrase appears.
-        In GP-TSM, deeper levels = higher salience (words kept through more shortenings).
-        Level 4 = highest salience (kept in all shortenings, darkest in visualization)
-        Level 0 = lowest salience (deleted early, lightest in visualization)
+        Get the salience level of a single word.
+        Salience is determined by the highest (deepest) level where the word appears.
+        - Level 0: Word cut in first round (appears in level 0 but not level 1)
+        - Level 1: Word cut in second round (appears in level 1 but not level 2)
+        - Level 2: Word cut in third round (appears in level 2 but not level 3)
+        - Level 3: Word cut in fourth round (appears in level 3 but not level 4)
+        - Level 4: Word kept through all rounds (appears in level 4)
         
-        Returns the level number (0-4) or None if not found.
+        Returns the level number (0-4) or None if word not found.
         """
         import re
         
-        phrase_lower = phrase.lower().strip()
-        # Create a pattern that matches the phrase as a sequence of words
-        # This handles punctuation and spacing variations
-        phrase_pattern = r'\b' + re.escape(phrase_lower) + r'\b'
-        # Also try without word boundaries for flexibility
-        phrase_pattern_loose = phrase_lower.replace(' ', r'\s+')
+        # Normalize word: lowercase, strip punctuation for matching
+        word_clean = re.sub(r'[^\w\s]', '', word.lower().strip())
+        if not word_clean:
+            return None
+        
+        # Create word pattern with word boundaries
+        word_pattern = r'\b' + re.escape(word_clean) + r'\b'
         
         # Check each level from deepest (4) to shallowest (0)
-        # We want the DEEPEST level where the phrase appears
+        # We want the HIGHEST level where the word appears
+        # The highest level where a word appears is its salience
+        highest_level = None
         for level in ['4', '3', '2', '1', '0']:
             if level in levels:
                 level_text = levels[level].lower()
-                
-                # Try strict word boundary match first
-                if re.search(phrase_pattern, level_text):
-                    return int(level)
-                # Fall back to loose matching (allows spacing variations)
-                elif re.search(phrase_pattern_loose, level_text):
-                    return int(level)
-                # Fall back to simple substring match (for robustness)
-                elif phrase_lower in level_text:
-                    return int(level)
+                # Check if word appears in this level
+                if re.search(word_pattern, level_text):
+                    highest_level = int(level)
+                    break  # Found the highest level, no need to check lower levels
         
-        return None
+        return highest_level
+    
+    def _get_phrase_salience(self, phrase: str, levels: Dict[str, str]) -> Optional[int]:
+        """
+        Get the salience of a phrase by finding the minimum salience among all words in the phrase.
+        The salience of a phrase is the lowest word salience within that phrase.
+        
+        Returns the level number (0-4) or None if phrase not found.
+        """
+        import re
+        
+        # Split phrase into words, handling punctuation
+        words = re.findall(r'\b\w+\b', phrase.lower())
+        if not words:
+            return None
+        
+        # Get salience for each word
+        word_saliences = []
+        for word in words:
+            salience = self._get_word_salience(word, levels)
+            if salience is not None:
+                word_saliences.append(salience)
+        
+        if not word_saliences:
+            return None
+        
+        # Return minimum salience (lowest level = earliest cut)
+        return min(word_saliences)
     
     def _get_max_salience(self, phrase: str, levels: Dict[str, str]) -> Optional[int]:
         """
-        Get the maximum salience (deepest level number) for a phrase.
-        Higher number = higher salience (phrase kept through more shortenings).
-        Returns the level number (0-4) or None if not found.
+        Get the salience of a phrase (minimum salience among words in the phrase).
+        This is an alias for _get_phrase_salience for backward compatibility.
         """
-        return self._find_phrase_in_levels(phrase, levels)
+        return self._get_phrase_salience(phrase, levels)
     
     def _check_assertion(self, assertion: SalienceAssertion, levels: Dict[str, str]) -> Tuple[bool, str]:
         """
@@ -126,7 +152,7 @@ class TestHarness:
             passed = salience1 == salience2
             message = f"Salience({assertion.phrase1})={salience1} == Salience({assertion.phrase2})={salience2} (✓)" if passed else f"Salience({assertion.phrase1})={salience1} != Salience({assertion.phrase2})={salience2} (✗)"
         elif assertion.relation == AssertionType.GREATER_EQUAL:
-            # phrase1 >= phrase2 means phrase1 has equal or higher salience (larger or equal level number)
+            # phrase1 >= phrase2 means phrase1 has equal or higher salience (larger or eq                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ual level number)
             passed = salience1 >= salience2
             message = f"Salience({assertion.phrase1})={salience1} >= Salience({assertion.phrase2})={salience2} (✓)" if passed else f"Salience({assertion.phrase1})={salience1} NOT >= Salience({assertion.phrase2})={salience2} (✗)"
         else:
@@ -206,7 +232,8 @@ class TestHarness:
                 'passed': all_passed,
                 'assertions': assertion_results,
                 'warnings': len(warnings),
-                'levels': {k: v[:200] + '...' if len(v) > 200 else v for k, v in levels.items()},  # Truncate for storage
+                'levels': {k: v[:200] + '...' if len(v) > 200 else v for k, v in levels.items()},  # Truncate for display
+                'full_levels': levels,  # Store full levels for visualization (not truncated)
                 'error': None
             }
             
@@ -220,7 +247,8 @@ class TestHarness:
                 'category': test_case.category,
                 'passed': False,
                 'error': error_msg,
-                'assertions': []
+                'assertions': [],
+                'full_levels': None
             }
     
     def run_all_tests(self) -> Dict:
@@ -295,7 +323,7 @@ def load_legal_test_cases() -> List[TestCase]:
     
     # Test Case 1
     test_cases.append(TestCase(
-        name="Legal Test 1: Impetus and ownership dispute",
+        name="Test 1",
         original_text="This is because the impetus which may lead S to seek to be registered as the owner of adjacent land which S formerly thought was already his (or hers) will often be the raising by his neighbour O of a dispute as to his ownership, backed up by evidence in support, which destroys S's belief that it belongs to him, or at least makes his continuing belief unreasonable.",
         category="legal",
         assertions=[
@@ -314,7 +342,7 @@ def load_legal_test_cases() -> List[TestCase]:
     
     # Test Case 2
     test_cases.append(TestCase(
-        name="Legal Test 2: Question of construction",
+        name="Test 2",
         original_text="The question of construction to be decided on this appeal arises because it is common ground that, as a matter of pure grammar, the italicised passage in paragraph 5(4)(c) of Schedule 6 can be read in two ways, which I will call constructions A and B.",
         category="legal",
         assertions=[
@@ -333,7 +361,7 @@ def load_legal_test_cases() -> List[TestCase]:
     
     # Test Case 3
     test_cases.append(TestCase(
-        name="Legal Test 3: Land registration (Mr Brown)",
+        name="Test 3",
         original_text="On 20 September 2002 the respondent Mr Brown was registered as proprietor of a substantial piece of rough, undeveloped land lying to the West of The Promenade, Consett, County Durham (\"the Brown land\").",
         category="legal",
         assertions=[
@@ -358,7 +386,7 @@ def load_legal_test_cases() -> List[TestCase]:
     
     # Test Case 4
     test_cases.append(TestCase(
-        name="Legal Test 4: Land registration (Mr and Mrs Ridley)",
+        name="Test 4",
         original_text="On 8 July 2004 the appellants Mr and Mrs Ridley were registered as proprietors of land adjoining part of the Brown land to the North East of it, and also lying to the West of the Promenade, including a dwelling house known as Valley View.",
         category="legal",
         assertions=[
