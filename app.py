@@ -47,7 +47,7 @@ def add_paragraph():
         l0 = ''
         vl0 = ''
         try:
-            for d in llm.get_shortened_paragraph(paragraph, k):
+            for d in llm.get_shortened_paragraph(paragraph, k, system_message=llm.UK_LAW_SYSTEM_MESSAGE):
                 l0 += d['0'] + ' '
                 vl0 += generate_vl0(d['0'], d['1'], d['2'], d['3'], d['4']) + ' '
         except Exception as e:

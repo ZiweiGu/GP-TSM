@@ -91,6 +91,71 @@ class TestHarness:
                     break  # Found the highest level, no need to check lower levels
         
         return highest_level
+
+    def _normalize_word(self, word: str) -> str:
+        """Normalize a word for sequential matching (lowercase, strip trailing punctuation)."""
+        import re
+        word = word.lower().strip()
+        # Remove trailing punctuation but keep internal apostrophes/hyphens
+        return re.sub(r"[^\w]+$", "", word)
+
+    def _words_equal(self, w1: str, w2: str) -> bool:
+        """Compare words using the same normalization used for sequential matching."""
+        return self._normalize_word(w1) == self._normalize_word(w2)
+
+    def _get_l0_word_saliences(self, levels: Dict[str, str]) -> List[Tuple[str, int]]:
+        """
+        Compute per-word salience for level 0 words using sequential matching across levels.
+        Returns a list of (word, salience) in l0 order.
+        """
+        l0_lst = levels.get('0', '').split()
+        l1_lst = levels.get('1', '').split()
+        l2_lst = levels.get('2', '').split()
+        l3_lst = levels.get('3', '').split()
+        l4_lst = levels.get('4', '').split()
+
+        p1 = 0
+        p2 = 0
+        p3 = 0
+        p4 = 0
+
+        results: List[Tuple[str, int]] = []
+
+        for w in l0_lst:
+            matched_l1 = p1 < len(l1_lst) and self._words_equal(w, l1_lst[p1])
+            if not matched_l1:
+                results.append((w, 0))
+                continue
+
+            p1 += 1
+
+            if p4 < len(l4_lst) and self._words_equal(w, l4_lst[p4]):
+                p4 += 1
+                results.append((w, 4))
+            elif p3 < len(l3_lst) and self._words_equal(w, l3_lst[p3]):
+                p3 += 1
+                results.append((w, 3))
+            elif p2 < len(l2_lst) and self._words_equal(w, l2_lst[p2]):
+                p2 += 1
+                results.append((w, 2))
+            else:
+                results.append((w, 1))
+
+        return results
+
+    def _find_phrase_indices(self, l0_words: List[str], phrase_words: List[str]) -> Optional[int]:
+        """Find the start index of the first phrase match in l0 words."""
+        if not phrase_words:
+            return None
+        for i in range(len(l0_words) - len(phrase_words) + 1):
+            matched = True
+            for j, pw in enumerate(phrase_words):
+                if not self._words_equal(l0_words[i + j], pw):
+                    matched = False
+                    break
+            if matched:
+                return i
+        return None
     
     def _get_phrase_salience(self, phrase: str, levels: Dict[str, str]) -> Optional[int]:
         """
@@ -99,25 +164,42 @@ class TestHarness:
         
         Returns the level number (0-4) or None if phrase not found.
         """
-        import re
-        
-        # Split phrase into words, handling punctuation
-        words = re.findall(r'\b\w+\b', phrase.lower())
-        if not words:
+        stats = self._get_phrase_salience_stats(phrase, levels)
+        if stats is None:
             return None
-        
-        # Get salience for each word
-        word_saliences = []
-        for word in words:
-            salience = self._get_word_salience(word, levels)
-            if salience is not None:
-                word_saliences.append(salience)
-        
-        if not word_saliences:
+        min_salience, _, _ = stats
+        return min_salience
+
+    def _get_phrase_salience_stats(self, phrase: str, levels: Dict[str, str]) -> Optional[Tuple[int, float, int]]:
+        """
+        Get phrase salience stats:
+        - min_salience: lowest word salience within the phrase
+        - pct_lowest: percentage of words at that lowest salience
+        - total_words: total word count in phrase
+
+        Returns (min_salience, pct_lowest, total_words) or None if phrase not found.
+        """
+        phrase_words = phrase.split()
+        if not phrase_words:
             return None
-        
-        # Return minimum salience (lowest level = earliest cut)
-        return min(word_saliences)
+
+        l0_word_saliences = self._get_l0_word_saliences(levels)
+        l0_words = [w for w, _ in l0_word_saliences]
+
+        start_idx = self._find_phrase_indices(l0_words, phrase_words)
+        if start_idx is None:
+            return None
+
+        slice_saliences = [s for _, s in l0_word_saliences[start_idx:start_idx + len(phrase_words)]]
+        if not slice_saliences:
+            return None
+
+        min_salience = min(slice_saliences)
+        lowest_count = sum(1 for s in slice_saliences if s == min_salience)
+        total_words = len(slice_saliences)
+        pct_lowest = lowest_count / total_words if total_words > 0 else 0.0
+
+        return min_salience, pct_lowest, total_words
     
     def _get_max_salience(self, phrase: str, levels: Dict[str, str]) -> Optional[int]:
         """
@@ -131,34 +213,76 @@ class TestHarness:
         Check if an assertion holds given the salience levels.
         Returns (passed, message).
         """
-        salience1 = self._get_max_salience(assertion.phrase1, levels)
-        salience2 = self._get_max_salience(assertion.phrase2, levels)
-        
-        if salience1 is None:
+        stats1 = self._get_phrase_salience_stats(assertion.phrase1, levels)
+        stats2 = self._get_phrase_salience_stats(assertion.phrase2, levels)
+
+        if stats1 is None:
             return False, f"Phrase 1 '{assertion.phrase1}' not found in output"
-        if salience2 is None:
+        if stats2 is None:
             return False, f"Phrase 2 '{assertion.phrase2}' not found in output"
-        
+
+        salience1, pct_lowest1, total1 = stats1
+        salience2, pct_lowest2, total2 = stats2
+
         # Higher number = higher salience (deeper level = kept longer)
-        # So if phrase1 has lower salience than phrase2, phrase1's level number is smaller
+        # Tie-breaker: higher percentage of lowest-level words = lower salience
         if assertion.relation == AssertionType.LESS_THAN:
-            # phrase1 < phrase2 means phrase1 has lower salience (smaller level number)
-            passed = salience1 < salience2
-            message = f"Salience({assertion.phrase1})={salience1} < Salience({assertion.phrase2})={salience2} (✓)" if passed else f"Salience({assertion.phrase1})={salience1} NOT < Salience({assertion.phrase2})={salience2} (✗)"
+            # phrase1 < phrase2 means phrase1 has lower salience
+            if salience1 < salience2:
+                passed = True
+            elif salience1 > salience2:
+                passed = False
+            else:
+                passed = pct_lowest1 > pct_lowest2
+            message = (
+                f"Salience({assertion.phrase1})={salience1} ({pct_lowest1:.2%} of {total1} words at level {salience1}) "
+                f"< Salience({assertion.phrase2})={salience2} ({pct_lowest2:.2%} of {total2} words at level {salience2}) (✓)"
+                if passed else
+                f"Salience({assertion.phrase1})={salience1} ({pct_lowest1:.2%} of {total1} words at level {salience1}) "
+                f"NOT < Salience({assertion.phrase2})={salience2} ({pct_lowest2:.2%} of {total2} words at level {salience2}) (✗)"
+            )
         elif assertion.relation == AssertionType.GREATER_THAN:
-            # phrase1 > phrase2 means phrase1 has higher salience (larger level number)
-            passed = salience1 > salience2
-            message = f"Salience({assertion.phrase1})={salience1} > Salience({assertion.phrase2})={salience2} (✓)" if passed else f"Salience({assertion.phrase1})={salience1} NOT > Salience({assertion.phrase2})={salience2} (✗)"
+            # phrase1 > phrase2 means phrase1 has higher salience
+            if salience1 > salience2:
+                passed = True
+            elif salience1 < salience2:
+                passed = False
+            else:
+                passed = pct_lowest1 < pct_lowest2
+            message = (
+                f"Salience({assertion.phrase1})={salience1} ({pct_lowest1:.2%} of {total1} words at level {salience1}) "
+                f"> Salience({assertion.phrase2})={salience2} ({pct_lowest2:.2%} of {total2} words at level {salience2}) (✓)"
+                if passed else
+                f"Salience({assertion.phrase1})={salience1} ({pct_lowest1:.2%} of {total1} words at level {salience1}) "
+                f"NOT > Salience({assertion.phrase2})={salience2} ({pct_lowest2:.2%} of {total2} words at level {salience2}) (✗)"
+            )
         elif assertion.relation == AssertionType.EQUAL:
-            passed = salience1 == salience2
-            message = f"Salience({assertion.phrase1})={salience1} == Salience({assertion.phrase2})={salience2} (✓)" if passed else f"Salience({assertion.phrase1})={salience1} != Salience({assertion.phrase2})={salience2} (✗)"
+            passed = salience1 == salience2 and pct_lowest1 == pct_lowest2
+            message = (
+                f"Salience({assertion.phrase1})={salience1} ({pct_lowest1:.2%} of {total1} words at level {salience1}) "
+                f"== Salience({assertion.phrase2})={salience2} ({pct_lowest2:.2%} of {total2} words at level {salience2}) (✓)"
+                if passed else
+                f"Salience({assertion.phrase1})={salience1} ({pct_lowest1:.2%} of {total1} words at level {salience1}) "
+                f"!= Salience({assertion.phrase2})={salience2} ({pct_lowest2:.2%} of {total2} words at level {salience2}) (✗)"
+            )
         elif assertion.relation == AssertionType.GREATER_EQUAL:
-            # phrase1 >= phrase2 means phrase1 has equal or higher salience (larger or eq                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ual level number)
-            passed = salience1 >= salience2
-            message = f"Salience({assertion.phrase1})={salience1} >= Salience({assertion.phrase2})={salience2} (✓)" if passed else f"Salience({assertion.phrase1})={salience1} NOT >= Salience({assertion.phrase2})={salience2} (✗)"
+            # phrase1 >= phrase2 means phrase1 has equal or higher salience
+            if salience1 > salience2:
+                passed = True
+            elif salience1 < salience2:
+                passed = False
+            else:
+                passed = pct_lowest1 <= pct_lowest2
+            message = (
+                f"Salience({assertion.phrase1})={salience1} ({pct_lowest1:.2%} of {total1} words at level {salience1}) "
+                f">= Salience({assertion.phrase2})={salience2} ({pct_lowest2:.2%} of {total2} words at level {salience2}) (✓)"
+                if passed else
+                f"Salience({assertion.phrase1})={salience1} ({pct_lowest1:.2%} of {total1} words at level {salience1}) "
+                f"NOT >= Salience({assertion.phrase2})={salience2} ({pct_lowest2:.2%} of {total2} words at level {salience2}) (✗)"
+            )
         else:
             return False, f"Unknown assertion type: {assertion.relation}"
-        
+
         # Message already includes pass/fail indicator
         return passed, message
     

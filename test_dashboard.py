@@ -157,7 +157,7 @@ def run_tests():
     k = k.strip()
     
     # Create test harness and load test cases
-    harness = TestHarness(k)
+    harness = TestHarness(k, system_message=llm.UK_LAW_SYSTEM_MESSAGE)
     test_cases = load_legal_test_cases()
     
     for test_case in test_cases:

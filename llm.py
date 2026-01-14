@@ -19,13 +19,13 @@ GRAMMER_SCORE_RULE = {'A': 1, 'B': 0.5, 'C': 0}
 UK_LAW_SYSTEM_MESSAGE = "You are an expert legal assistant. Your goal is to reveal the core legal structure. You MUST aggressively delete specific dates, locations, and citations as they are considered noise here. However, you must PRESERVE legal terms of art (e.g., 'common ground', 'proprietor', 'registered') and the logical flow of the argument. Focus on the main legal action."
 
 EXTRACTIVE_SHORTENER_PROMPT_TEMPLATE = \
-"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms, while preserving the main meaning of the sentence as much as possible. Be aggressive in removing non-essential phrases, parentheticals, redundant clauses, and details about time/ location. The length of the result should be at most 80 percent of the original length. Important: Please make sure the result remains grammatical!!
+"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms, while preserving the main meaning of the sentence as much as possible. Be aggressive in removing parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 80 percent of the original length (you must delete at least 20% of the text). Important: Please make sure the result remains grammatical!!
 "${paragraph}"
 
 Please do not add any new words or change words, only delete words."""
 
 EXTRACTIVE_SHORTENER_PROMPT_TEMPLATE_AGGRESSIVE = \
-"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms, while preserving the main meaning of the sentence as much as possible. Be more aggressive in removing non-essential phrases, parentheticals, redundant clauses, and details about time/ location. The length of the result should be at most 70 percent of the original length (you must delete at least 30% of the text). Important: Please make sure the result remains grammatical!!
+"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms, while preserving the main meaning of the sentence as much as possible. Be more aggressive in removing parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 70 percent of the original length (you must delete at least 30% of the text). Important: Please make sure the result remains grammatical!!
 "${paragraph}"
 
 Please do not add any new words or change words, only delete words."""
