@@ -22,7 +22,7 @@ def get_openai_client() -> OpenAI:
         raise ValueError("OpenAI API key not set. Call set_openai_api_key() first.")
     return _client
 
-def call_chatgpt(prompt: str, n: int = 1, temperature: float = 1.0, api_key: Optional[str] = None) -> Tuple[Dict, Dict]:
+def call_chatgpt(prompt: str, n: int = 1, temperature: float = 1.0, api_key: Optional[str] = None, system_message: str = "You are a helpful assistant.") -> Tuple[Dict, Dict]:
     """
     Call ChatGPT API. If api_key is provided, uses it; otherwise uses the global client.
     """
@@ -43,7 +43,7 @@ def call_chatgpt(prompt: str, n: int = 1, temperature: float = 1.0, api_key: Opt
     query = {
         "model": "gpt-3.5-turbo",
         "messages": [
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": system_message},
             {"role": "user", "content": prompt},
         ],
         "n": n,
