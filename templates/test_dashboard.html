@@ -46,6 +46,14 @@
       background: #fafafa;
     }
 
+    .test-subcase {
+      margin-top: 20px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 15px;
+      background: #ffffff;
+    }
+
     .test-case-header {
       display: flex;
       justify-content: space-between;
@@ -209,45 +217,64 @@
       {% endif %}
     {% endwith %}
 
-    {% for test in test_data %}
+    {% for paragraph in paragraph_data %}
     <div class="test-case">
       <div class="test-case-header">
-        <div class="test-case-name">{{ test.name }}</div>
-        {% if test.has_results %}
-          {% if test.result.passed %}
-            <div class="test-status passed">✓ PASSED</div>
-          {% else %}
-            <div class="test-status failed">✗ FAILED</div>
-          {% endif %}
-        {% else %}
-          <div class="test-status pending">⏳ PENDING</div>
-        {% endif %}
+        <div class="test-case-name">Paragraph {{ paragraph.index }}</div>
       </div>
 
-      {% if test.has_results %}
-        {% if test.result.error %}
+      <div class="text-comparison">
+        <div>
+          <div class="text-label">Original Text</div>
+          <div class="text-block original">
+            {{ paragraph.result.original_text_formatted|safe if paragraph.has_results else paragraph.original_text }}
+          </div>
+        </div>
+        <div>
+          <div class="text-label">GP-TSM Rendered</div>
+          <div class="text-block rendered">
+            {% if paragraph.has_results %}
+              {{ paragraph.result.rendered_text|safe }}
+            {% else %}
+              {% if paragraph.has_test_results %}
+                <div class="loading">Re-run tests to generate paragraph render</div>
+              {% else %}
+                <div class="loading">Run tests to see rendered output</div>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% for test in paragraph.tests %}
+      <div class="test-subcase">
+        <div class="test-case-header">
+          <div class="test-case-name">{{ test.name }}</div>
+          {% if test.has_results %}
+            {% if test.result.passed %}
+              <div class="test-status passed">✓ PASSED</div>
+            {% else %}
+              <div class="test-status failed">✗ FAILED</div>
+            {% endif %}
+          {% else %}
+            <div class="test-status pending">⏳ PENDING</div>
+          {% endif %}
+        </div>
+
+        {% if test.has_results and test.result.error %}
           <div class="error-message">
             <strong>Error:</strong> {{ test.result.error }}
           </div>
-        {% else %}
-          <div class="text-comparison">
-            <div>
-              <div class="text-label">Original Text</div>
-              <div class="text-block original">{{ test.result.original_text_formatted|safe }}</div>
-            </div>
-            <div>
-              <div class="text-label">GP-TSM Rendered</div>
-              <div class="text-block rendered">{{ test.result.rendered_text|safe }}</div>
-            </div>
-          </div>
+        {% endif %}
 
-          <div class="assertions">
-            <div style="font-weight: bold; margin-bottom: 10px; color: #666;">Assertions:</div>
+        <div class="assertions">
+          <div style="font-weight: bold; margin-bottom: 10px; color: #666;">Assertions:</div>
+          {% if test.has_results %}
             {% for assertion in test.result.assertions %}
               <div class="assertion {{ 'passed' if assertion.passed else 'failed' }} {{ 'nice-to-have' if assertion.nice_to_have else '' }}">
                 <div class="assertion-text">
-                  Salience(<strong>{{ assertion.phrase1 }}</strong>) 
-                  {{ assertion.relation }} 
+                  Salience(<strong>{{ assertion.phrase1 }}</strong>)
+                  {{ assertion.relation }}
                   Salience(<strong>{{ assertion.phrase2 }}</strong>)
                   {% if assertion.nice_to_have %}
                     <span style="font-size: 10px; color: #666;">(nice-to-have)</span>
@@ -256,22 +283,21 @@
                 <div class="assertion-details">{{ assertion.message }}</div>
               </div>
             {% endfor %}
-          </div>
-        {% endif %}
-      {% else %}
-        <div class="text-comparison">
-          <div>
-            <div class="text-label">Original Text</div>
-            <div class="text-block original">{{ test.original_text|safe }}</div>
-          </div>
-          <div>
-            <div class="text-label">GP-TSM Rendered</div>
-            <div class="text-block rendered">
-              <div class="loading">Run tests to see rendered output</div>
-            </div>
-          </div>
+          {% else %}
+            {% for assertion in test.assertions %}
+              <div class="assertion">
+                <div class="assertion-text">
+                  Salience(<strong>{{ assertion.phrase1 }}</strong>)
+                  {{ assertion.relation.value }}
+                  Salience(<strong>{{ assertion.phrase2 }}</strong>)
+                </div>
+                <div class="assertion-details">Run tests to see results</div>
+              </div>
+            {% endfor %}
+          {% endif %}
         </div>
-      {% endif %}
+      </div>
+      {% endfor %}
     </div>
     {% endfor %}
   </div>

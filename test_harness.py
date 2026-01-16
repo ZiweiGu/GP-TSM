@@ -96,8 +96,10 @@ class TestHarness:
         """Normalize a word for sequential matching (lowercase, strip trailing punctuation)."""
         import re
         word = word.lower().strip()
-        # Remove trailing punctuation but keep internal apostrophes/hyphens
-        return re.sub(r"[^\w]+$", "", word)
+        # Normalize curly quotes/apostrophes to straight apostrophe
+        word = word.replace("’", "'").replace("‘", "'").replace("‛", "'").replace("`", "'")
+        # Strip leading/trailing punctuation but keep internal apostrophes/hyphens
+        return re.sub(r"^[^a-z0-9']+|[^a-z0-9']+$", "", word)
 
     def _words_equal(self, w1: str, w2: str) -> bool:
         """Compare words using the same normalization used for sequential matching."""
@@ -449,7 +451,7 @@ def load_legal_test_cases() -> List[TestCase]:
     # Test Case 1
     test_cases.append(TestCase(
         name="Test 1",
-        original_text="This is because the impetus which may lead S to seek to be registered as the owner of adjacent land which S formerly thought was already his (or hers) will often be the raising by his neighbour O of a dispute as to his ownership, backed up by evidence in support, which destroys S's belief that it belongs to him, or at least makes his continuing belief unreasonable.",
+        original_text="This is because the impetus which may lead S to seek to be registered as the owner of adjacent land which S formerly thought was already his (or hers) will often be the raising by his neighbour O of a dispute as to his ownership, backed up by evidence in support, which destroys S's belief that it belongs to him, or at least makes his continuing belief unreasonable. But it is virtually inconceivable that S could then prepare and make such an application on the very same day as O first articulated his claim.",
         category="legal",
         assertions=[
             SalienceAssertion(
@@ -461,10 +463,20 @@ def load_legal_test_cases() -> List[TestCase]:
                 phrase1="S's belief",
                 phrase2="or at least makes his continuing belief unreasonable",
                 relation=AssertionType.GREATER_THAN
+            ),
+            SalienceAssertion(
+                phrase1="virtually",
+                phrase2="inconceivable",
+                relation=AssertionType.LESS_THAN
+            ),
+            SalienceAssertion(
+                phrase1="very",
+                phrase2="same day",
+                relation=AssertionType.LESS_THAN
             )
         ]
     ))
-    
+
     # Test Case 2
     test_cases.append(TestCase(
         name="Test 2",
@@ -477,8 +489,8 @@ def load_legal_test_cases() -> List[TestCase]:
                 relation=AssertionType.LESS_THAN
             ),
             SalienceAssertion(
-                phrase1="the italicised passage in paragraph 5(4)(c) of Schedule 6 can be read in two ways",
-                phrase2="which I will call constructions A and B.",
+                phrase1="the italicised passage",
+                phrase2="in paragraph 5(4)(c) of Schedule 6",
                 relation=AssertionType.GREATER_THAN
             )
         ]
@@ -501,10 +513,9 @@ def load_legal_test_cases() -> List[TestCase]:
                 relation=AssertionType.GREATER_THAN
             ),
             SalienceAssertion(
-                phrase1="the Brown land",
-                phrase2="a substantial piece of rough, undeveloped land lying to the West of The Promenade, Consett, County Durham",
-                relation=AssertionType.GREATER_THAN,
-                nice_to_have=True
+                phrase1="a substantial piece of rough, undeveloped land",
+                phrase2="lying to the West of The Promenade, Consett, County Durham (“the Brown land”)",
+                relation=AssertionType.GREATER_THAN
             )
         ]
     ))

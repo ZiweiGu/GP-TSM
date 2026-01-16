@@ -9,23 +9,23 @@ import re
 MAX_DEPTH = 4 #The 'max depth', or number of successive times we'll try to shorten # make it based on semantic distance 
 # semantic score compare with the ORIGINAL paragraph (minimum 1 round; with additional rounds conditioned on score >= threshold)
 TEMPERATURE = 0.8 #The temperature for ChatGPT calls
-N = 2 #The number of responses to request from ChatGPT, for *each* query 
+N = 3 #The number of responses to request from ChatGPT, for *each* query 
 # framing of paper: focus on forgrounding how AI can hallucinate, especially summarization leading to misinformation. Because of that,
 # we design a purely extractive system  "AI-resilient interface design" help humans notice, recover
 # strike editing, redo GRE and open-ended reading; in future work, we mention editing and reading questions
 
 GRAMMER_SCORE_RULE = {'A': 1, 'B': 0.5, 'C': 0}
 
-UK_LAW_SYSTEM_MESSAGE = "You are an expert legal assistant. Your goal is to reveal the core legal structure. You MUST aggressively delete specific dates, locations, and citations as they are considered noise here. However, you must PRESERVE legal terms of art (e.g., 'common ground', 'proprietor', 'registered') and the logical flow of the argument. Focus on the main legal action."
+UK_LAW_SYSTEM_MESSAGE = "You are an expert legal assistant. Your goal is to reveal the core legal structure. You MUST aggressively delete specific dates, locations, names, and citations as they are considered noise here. However, you must PRESERVE legal terms of art (e.g., 'common ground', 'proprietor', 'registered') and the logical flow of the argument. Focus on the main legal action."
 
 EXTRACTIVE_SHORTENER_PROMPT_TEMPLATE = \
-"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms, while preserving the main meaning of the sentence as much as possible. Be aggressive in removing parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 80 percent of the original length (you must delete at least 20% of the text). Important: Please make sure the result remains grammatical!!
+"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms/ pronouns, while preserving the main meaning of the sentence as much as possible. Be aggressive in removing intensifying adjs/ advs, parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 70 percent of the original length (you must delete at least 30% of the text). Important: Please make sure the result remains grammatical!!
 "${paragraph}"
 
 Please do not add any new words or change words, only delete words."""
 
 EXTRACTIVE_SHORTENER_PROMPT_TEMPLATE_AGGRESSIVE = \
-"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms, while preserving the main meaning of the sentence as much as possible. Be more aggressive in removing parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 70 percent of the original length (you must delete at least 30% of the text). Important: Please make sure the result remains grammatical!!
+"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms/ pronouns, while preserving the main meaning of the sentence as much as possible. Be more aggressive in removing intensifying adjs/ advs, parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 60 percent of the original length (you must delete at least 40% of the text). Important: Please make sure the result remains grammatical!!
 "${paragraph}"
 
 Please do not add any new words or change words, only delete words."""
@@ -252,6 +252,9 @@ def get_shortened_paragraph(orig_paragraph, k, system_message: str = None):
                     "composite_score": composite_score
                 })
             
+            # Preserve all responses for fallback logic before grammar filtering
+            response_infos_all = list(response_infos)
+
             # Filter out responses with poor grammar (C score) unless all responses are C
             # Prioritize A > B > C
             has_a = any(info['grammar_letter'] == 'A' for info in response_infos)
@@ -275,6 +278,20 @@ def get_shortened_paragraph(orig_paragraph, k, system_message: str = None):
             
             # if best is where no change is present, look at other llm outputs. 
             best_response = response_infos[0]
+
+            # If the best A-rated response made no reduction, allow B-rated candidates that do reduce
+            # This avoids stalling when grammar filtering is too strict for complex sentences
+            original_len = len(paragraph.split())
+            best_len = len(best_response['reverted'].split())
+            if best_len == original_len and has_a:
+                b_candidates = [
+                    info for info in response_infos_all
+                    if info.get('grammar_letter') == 'B'
+                    and len(info.get('reverted', '').split()) < original_len
+                ]
+                if b_candidates:
+                    b_candidates.sort(key=lambda x: x["composite_score"], reverse=True)
+                    best_response = b_candidates[0]
             
             # Final grammar check: if best response has C grammar and we have alternatives, try to find better one
             if best_response.get('grammar_letter') == 'C' and len(response_infos) > 1:
