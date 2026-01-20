@@ -48,6 +48,7 @@ preshed==3.0.9
 protobuf==4.24.4
 psycopg2==2.9.5
 pydantic==1.10.14
+pypdf==6.6.0
 python-dateutil==2.9.0.post0
 pytz==2024.1
 PyX==0.14.1
@@ -65,6 +66,7 @@ spacy-conll==3.4.0
 spacy-legacy==3.0.12
 spacy-loggers==1.0.5
 spacy-stanza==1.0.4
+spire-doc==14.1.0
 SQLAlchemy==2.0.5.post1
 srsly==2.4.8
 stanza==1.6.1

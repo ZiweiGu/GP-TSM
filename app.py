@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, flash, redirect, url_for
 import llm
 import logging
 import warnings
+from pypdf import PdfReader
+from spire.doc import Document
 
 # Suppress urllib3 OpenSSL warning (it's just a warning, not an error)
 warnings.filterwarnings('ignore', message='.*urllib3.*OpenSSL.*')
@@ -29,6 +31,33 @@ def automated():
 @app.route('/add_paragraph', methods=['POST'])
 def add_paragraph():
     form_input = request.form.get("paragraph")
+    file = request.files.get('file')
+    
+    if file and file.filename:
+        if file.filename.endswith('.txt'):
+            form_input = file.read().decode('utf-8')
+        elif file.filename.endswith('.pdf'):
+            try:
+                reader = PdfReader(file)
+                form_input = ""
+                for page in reader.pages:
+                    form_input += page.extract_text()
+            except Exception as e:
+                flash(f'Error reading PDF file: {e}', 'error')
+                return redirect(url_for('automated'))
+        elif file.filename.endswith(('.doc', '.docx')):
+            try:
+                document = Document()
+                document.LoadFromFile(file)
+                form_input = document.GetText()
+                document.Close()
+            except Exception as e:
+                flash(f'Error reading Word file: {e}', 'error')
+                return redirect(url_for('automated'))
+        else:
+            flash('Invalid file type. Please upload a .txt, .pdf, .doc, or .docx file.', 'error')
+            return redirect(url_for('automated'))
+    
     logger.info(f'User Input: {form_input}')
     k = request.form.get("key")
     
@@ -38,6 +67,10 @@ def add_paragraph():
     
     if not k or len(k) == 0:
         flash('Please provide an OpenAI API key', 'error')
+        return redirect(url_for('automated'))
+    
+    if not form_input and not file:
+        flash('Please enter some text or upload a file.', 'error')
         return redirect(url_for('automated'))
     
     sentence_list = []

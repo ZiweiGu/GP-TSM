@@ -113,7 +113,7 @@
 
 
 
-        <form action="/add_paragraph" method="post" class="ui form" id="myForm">
+        <form action="/add_paragraph" method="post" class="ui form" id="myForm" enctype="multipart/form-data">
           <!-- <div>
           <label for="semantic">minimum semantic closeness: </label>
           0 <input type="range" id="semantic" name="semantic" min="0" max="1" step="0.01" value="0"> 1
@@ -124,10 +124,14 @@
         </div> -->
         <!-- <br> -->
           <div class="field">
-            <label for="paragraph">Please enter some text:</label>
-            <textarea type="text" id="textarea" name="paragraph" placeholder="Paste some sentences here" maxlength="1000" required oninput="updateCharacterCount()"></textarea>
+            <label for="paragraph">Please enter some text (or upload a file):</label>
+            <textarea type="text" id="textarea" name="paragraph" placeholder="Paste some sentences here" maxlength="1000" oninput="updateCharacterCount()"></textarea>
             <label id="countLabel">1000 characters left</label>
 
+            <div class="field">
+              <label for="file">Upload a file (.txt, .pdf, .doc, .docx):</label>
+              <input type="file" id="file" name="file" accept=".txt,.pdf,.doc,.docx">
+            </div>
 
             <label for="key">Please enter your OpenAI API key:</label>
             <input type="text" id="key" name="key" required minlength="20" maxlength="200" size="50" />
