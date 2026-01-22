@@ -9,14 +9,14 @@ import re
 MAX_DEPTH = 4 #The 'max depth', or number of successive times we'll try to shorten # make it based on semantic distance 
 # semantic score compare with the ORIGINAL paragraph (minimum 1 round; with additional rounds conditioned on score >= threshold)
 TEMPERATURE = 0.8 #The temperature for ChatGPT calls
-N = 3 #The number of responses to request from ChatGPT, for *each* query 
+N = 2 #The number of responses to request from ChatGPT, for *each* query 
 # framing of paper: focus on forgrounding how AI can hallucinate, especially summarization leading to misinformation. Because of that,
 # we design a purely extractive system  "AI-resilient interface design" help humans notice, recover
 # strike editing, redo GRE and open-ended reading; in future work, we mention editing and reading questions
 
 GRAMMER_SCORE_RULE = {'A': 1, 'B': 0.5, 'C': 0}
 
-UK_LAW_SYSTEM_MESSAGE = "You are an expert legal assistant. Your goal is to reveal the core legal structure. You MUST aggressively delete specific dates, locations, names, and citations as they are considered noise here. However, you must PRESERVE legal terms of art (e.g., 'common ground', 'proprietor', 'registered') and the logical flow of the argument. Focus on the main legal action."
+UK_LAW_SYSTEM_MESSAGE = "You are an expert legal assistant. Your goal is to reveal the core legal structure. You MUST aggressively delete specific dates, locations, names, and citations as they are considered noise here. You may cut the whole sentence if it is fluff/ purely introductory. However, you must PRESERVE legal terms of art (e.g., 'common ground', 'proprietor', 'registered') and the logical flow of the argument. Focus on the main legal action."
 
 EXTRACTIVE_SHORTENER_PROMPT_TEMPLATE = \
 """For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms/ pronouns, while preserving the main meaning of the sentence as much as possible. Be aggressive in removing intensifying adjs/ advs, parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 70 percent of the original length (you must delete at least 30% of the text). Important: Please make sure the result remains grammatical!!

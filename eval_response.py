@@ -1,13 +1,37 @@
 
+import os
 import sys
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, models
 from sentence_transformers.util import cos_sim
 from difflib import SequenceMatcher
 import diff_text
 
 OPTIMAL_LENGTH = 0.6
-MPNET = SentenceTransformer('all-mpnet-base-v2') # SOTA model, better than SBERT
+# Allow swapping the semantic embedding model (e.g., a legal-specific one) via env var.
+# Default to a legal-domain model.
+SEMANTIC_EMBEDDING_MODEL = os.getenv(
+    "SEMANTIC_EMBEDDING_MODEL",
+    "nlpaueb/legal-bert-base-uncased",
+)
+
+
+def _load_embedding_model(model_name: str) -> SentenceTransformer:
+  # Some HF models (like legal-bert) aren't packaged as SentenceTransformers.
+  # Build an explicit transformer+pooling pipeline to avoid warnings.
+  if model_name == "nlpaueb/legal-bert-base-uncased":
+    transformer = models.Transformer(model_name)
+    pooling = models.Pooling(
+      transformer.get_word_embedding_dimension(),
+      pooling_mode_mean_tokens=True,
+      pooling_mode_cls_token=False,
+      pooling_mode_max_tokens=False,
+    )
+    return SentenceTransformer(modules=[transformer, pooling])
+  return SentenceTransformer(model_name)
+
+
+MPNET = _load_embedding_model(SEMANTIC_EMBEDDING_MODEL)
 
 
 def evaluate_on_meaning(original_paragraph, response):
