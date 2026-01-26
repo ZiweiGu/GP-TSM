@@ -16,7 +16,7 @@ N = 2 #The number of responses to request from ChatGPT, for *each* query
 
 GRAMMER_SCORE_RULE = {'A': 1, 'B': 0.5, 'C': 0}
 
-UK_LAW_SYSTEM_MESSAGE = "You are an expert legal assistant. Your goal is to reveal the core legal structure. You MUST aggressively delete specific dates, locations, names, and citations as they are considered noise here. You may cut the whole sentence if it is fluff/ purely introductory. However, you must PRESERVE legal terms of art (e.g., 'common ground', 'proprietor', 'registered') and the logical flow of the argument. Focus on the main legal action."
+UK_LAW_SYSTEM_MESSAGE = "You are an expert legal assistant. Your goal is to reveal the core legal structure. You MUST aggressively delete specific dates, locations, names, and citations as they are considered noise here. You may cut the whole sentence if it is fluff/ purely introductory. However, you must PRESERVE legal terms of art (e.g., 'common ground', 'proprietor', 'registered') and the logical flow of the argument. When you encounter a list, you must preserve all items in the list and the distinguishing details of each item. Focus on the main legal action."
 
 EXTRACTIVE_SHORTENER_PROMPT_TEMPLATE = \
 """For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms/ pronouns, while preserving the main meaning of the sentence as much as possible. Be aggressive in removing intensifying adjs/ advs, parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 70 percent of the original length (you must delete at least 30% of the text). Important: Please make sure the result remains grammatical!!
