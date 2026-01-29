@@ -41,7 +41,7 @@ def call_chatgpt(prompt: str, n: int = 1, temperature: float = 1.0, api_key: Opt
             raise ValueError("No API key provided. Please provide an OpenAI API key either as a parameter or by calling set_openai_api_key().")
     
     query = {
-        "model": "gpt-3.5-turbo",
+        "model": "gpt-4o",
         "messages": [
             {"role": "system", "content": system_message},
             {"role": "user", "content": prompt},

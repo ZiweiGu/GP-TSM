@@ -2,6 +2,7 @@ from abc import abstractmethod
 from typing import List, Dict, Tuple, Iterator, Optional
 import json
 import os
+import time
 from promptengine.utils import LLM, call_chatgpt, is_valid_filepath, is_valid_json
 from promptengine.template import PromptTemplate, PromptPermutationGenerator
 
@@ -93,11 +94,18 @@ class PromptPipeline:
             Useful for continuing if computation was interrupted halfway through. 
         """
         if os.path.isfile(self._filepath):
-            with open(self._filepath, encoding="utf-8") as f:
-                responses = json.load(f)
-            return responses
-        else:
-            return {}
+            try:
+                with open(self._filepath, encoding="utf-8") as f:
+                    responses = json.load(f)
+                return responses
+            except json.JSONDecodeError:
+                backup_path = f"{self._filepath}.corrupt-{int(time.time())}"
+                try:
+                    os.replace(self._filepath, backup_path)
+                except OSError:
+                    pass
+                return {}
+        return {}
     
     def _cache_responses(self, responses) -> None:
         with open(self._filepath, "w") as f:

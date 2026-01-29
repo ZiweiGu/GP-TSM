@@ -126,6 +126,14 @@ def _generate_vl0_single_sentence(l0, l1, l2, l3, l4):
         pairs = []
         while i < n and j < m:
             if source_norm[i] and source_norm[i] == target_norm[j]:
+                # If skipping either side keeps the same LCS length, prefer skipping
+                # to avoid always matching the earliest repeated token.
+                if dp[i + 1][j] == dp[i][j]:
+                    i += 1
+                    continue
+                if dp[i][j + 1] == dp[i][j]:
+                    j += 1
+                    continue
                 pairs.append((i, j))
                 i += 1
                 j += 1

@@ -16,16 +16,16 @@ N = 2 #The number of responses to request from ChatGPT, for *each* query
 
 GRAMMER_SCORE_RULE = {'A': 1, 'B': 0.5, 'C': 0}
 
-UK_LAW_SYSTEM_MESSAGE = "You are an expert legal assistant. Your goal is to reveal the core legal structure. You MUST aggressively delete specific dates, locations, names, and citations as they are considered noise here. You may cut the whole sentence if it is fluff/ purely introductory. However, you must PRESERVE legal terms of art (e.g., 'common ground', 'proprietor', 'registered') and the logical flow of the argument. Focus on the main legal action."
+UK_LAW_SYSTEM_MESSAGE = "You are an expert legal assistant. Your goal is to reveal the core legal structure. You MUST aggressively delete specific dates, locations, names, and citations as they are considered noise here. You may cut the whole sentence if it is fluff/ purely introductory. However, you must PRESERVE legal terms of art (e.g., 'common ground', 'proprietor', 'registered') and the logical flow of the argument (e.g. transition words such as 'however' and 'but'). Focus on the main legal action, brief, and judgment."
 
 EXTRACTIVE_SHORTENER_PROMPT_TEMPLATE = \
-"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms/ pronouns, while preserving the main meaning of the sentence as much as possible. Be aggressive in removing intensifying adjs/ advs, parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 70 percent of the original length (you must delete at least 30% of the text). Important: Please make sure the result remains grammatical!!
+"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms/ pronouns, while preserving the main meaning of the sentence as much as possible. Be aggressive in removing intensifying adjs/ advs, parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 80 percent of the original length (you must delete at least 20% of the text). Important: Please make sure the result remains grammatical!!
 "${paragraph}"
 
 Please do not add any new words or change words, only delete words."""
 
 EXTRACTIVE_SHORTENER_PROMPT_TEMPLATE_AGGRESSIVE = \
-"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms/ pronouns, while preserving the main meaning of the sentence as much as possible. Be more aggressive in removing intensifying adjs/ advs, parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 60 percent of the original length (you must delete at least 40% of the text). Important: Please make sure the result remains grammatical!!
+"""For each sentence in the following paragraph from a legal document, delete phrases that are not the main subject, verb, or object of the sentence, or key modifiers/ terms/ pronouns, while preserving the main meaning of the sentence as much as possible. Be more aggressive in removing intensifying adjs/ advs, parentheticals, attached clauses, and details about dates/ location. The length of the result should be at most 70 percent of the original length (you must delete at least 30% of the text). Important: Please make sure the result remains grammatical!!
 "${paragraph}"
 
 Please do not add any new words or change words, only delete words."""
@@ -36,6 +36,8 @@ GRAMMAR_CHECKER_PROMPT_TEMPLATE = \
 
 Answer A for grammatically correct, B for moderately grammatical (minor issues), and C for bad grammar (major grammatical errors). Only respond with one letter."""
 
+SUMMARY_1 = "The Secretary of State (the Appellant) argued that the British Nationality Act 1981 provides an exhaustive and fair procedural framework through section 40(5) and the right of appeal under section 40A. Their submissions contended that the law does not require individuals to be given a prior opportunity to make representations because doing so would allow them to frustrate the deprivation process by renouncing their foreign citizenship to avoid being made stateless."
+SUMMARY_2 = "Lord Sales, writing for the Supreme Court, held that the law supported the Secretary of State's position because the statutory right of appeal to the First-tier Tribunal (FTT) provides sufficient procedural fairness to satisfy the principles of natural justice. He reasoned that this appeal is not merely a limited public law review but a full merits-based process capable of considering new evidence, thereby filling any perceived "fairness gap" without requiring the Secretary of State to invite representations before a decision is made. Furthermore, he found that the Secretary of State had lawfully exercised her discretion by properly weighing the public interest against individual human rights and the welfare of the respondent's children."
 # PromptPipeline that runs the 'extractive shortner' prompt, and cache's responses.
 class ExtractiveShortenerPromptPipeline(PromptPipeline):
     def __init__(self, use_aggressive=False):
