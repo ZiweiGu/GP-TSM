@@ -104,6 +104,7 @@ The test harness validates salience relationships in the output and saves result
 See [`LICENSE.md`](LICENSE.md).
 
 ## Testcases to be put into a new test harness for UK legal texts
+(In collaboration with Dr. Brian Flanagan from Maynooth University)
 
 ### Original sentence
 "This is because the impetus which may lead S to seek to be
