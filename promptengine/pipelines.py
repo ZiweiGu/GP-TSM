@@ -1,8 +1,7 @@
 from abc import abstractmethod
-from typing import List, Dict, Tuple, Iterator, Optional
+from typing import List, Dict, Tuple, Iterator
 import json
 import os
-import time
 from promptengine.utils import LLM, call_chatgpt, is_valid_filepath, is_valid_json
 from promptengine.template import PromptTemplate, PromptPermutationGenerator
 
@@ -25,7 +24,7 @@ class PromptPipeline:
         """
         raise NotImplementedError("Please Implement the analyze_response method")
     
-    def gen_responses(self, properties, llm: LLM, n: int = 1, temperature: float = 1.0, api_key: Optional[str] = None, system_message: Optional[str] = None) -> Iterator[Dict]:
+    def gen_responses(self, properties, llm: LLM, n: int = 1, temperature: float = 1.0) -> Iterator[Dict]:
         """
             Calls LLM 'llm' with all prompts, and yields responses as dicts in format {prompt, query, response, llm, info}.
 
@@ -68,7 +67,7 @@ class PromptPipeline:
                 continue
 
             # Call the LLM to generate a response
-            query, response = self._prompt_llm(llm, prompt_str, n, temperature, api_key, system_message=system_message)
+            query, response = self._prompt_llm(llm, prompt_str, n, temperature)
 
             # Save the response to a JSON file
             # NOTE: We do this to save money --in case something breaks between calls, can ensure we got the data!
@@ -94,18 +93,11 @@ class PromptPipeline:
             Useful for continuing if computation was interrupted halfway through. 
         """
         if os.path.isfile(self._filepath):
-            try:
-                with open(self._filepath, encoding="utf-8") as f:
-                    responses = json.load(f)
-                return responses
-            except json.JSONDecodeError:
-                backup_path = f"{self._filepath}.corrupt-{int(time.time())}"
-                try:
-                    os.replace(self._filepath, backup_path)
-                except OSError:
-                    pass
-                return {}
-        return {}
+            with open(self._filepath, encoding="utf-8") as f:
+                responses = json.load(f)
+            return responses
+        else:
+            return {}
     
     def _cache_responses(self, responses) -> None:
         with open(self._filepath, "w") as f:
@@ -114,12 +106,9 @@ class PromptPipeline:
     def clear_cached_responses(self) -> None:
         self._cache_responses({})
 
-    def _prompt_llm(self, llm: LLM, prompt: str, n: int = 1, temperature: float = 1.0, api_key: Optional[str] = None, system_message: Optional[str] = None) -> Tuple[Dict, Dict]:
+    def _prompt_llm(self, llm: LLM, prompt: str, n: int = 1, temperature: float = 1.0) -> Tuple[Dict, Dict]:
         if llm is LLM.ChatGPT:
-            kwargs = {}
-            if system_message:
-                kwargs['system_message'] = system_message
-            return call_chatgpt(prompt, n=n, temperature=temperature, api_key=api_key, **kwargs)
+            return call_chatgpt(prompt, n=n, temperature=temperature)
         else:
             raise Exception(f"Language model {llm} is not supported.")
 
