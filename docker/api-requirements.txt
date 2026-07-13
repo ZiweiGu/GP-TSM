@@ -1,0 +1,5 @@
+lxml 
+lxml_html_clean 
+gunicorn 
+python-dotenv 
+trafilatura==1.11.0

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, flash, redirect, url_for
+from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
 import llm
 import logging
 
@@ -46,6 +46,42 @@ def add_paragraph():
         })
     return render_template('automated.html', sentence_list=sentence_list) # refresh the page after form submission
 
+@app.route('/get-gptsm-sentences', methods=['POST'])
+def get_sentences():
+    from trafilatura import extract
+    from dotenv import load_dotenv
+    import os
+    load_dotenv()
+    
+    data = request.json
+    title = data.get('title', 'No title')
+    content = data.get('content', '')
+
+    logger.info(f"Processing content for title: {title[:50]}...")  # Log first 50 chars of title
+    logger.info(f"Received content length: {len(content)} characters")
+
+    processed_content = extract(content)
+    logger.info(f"Processed content length: {(processed_content)} characters")
+
+    form_input = processed_content
+    logger.info(f'User Input: {form_input}')
+    k = os.getenv('OPENAI_API_KEY')
+    sentence_list = []
+    paragraphs = [s for s in form_input.split("\n") if len(s) > 2]
+    for i, paragraph in enumerate(paragraphs):
+        vl0 = ''
+        try:
+            for d in llm.get_shortened_paragraph(paragraph, k):
+                vl0 += generate_vl0(d['0'], d['1'], d['2'], d['3'], d['4']) + ' '
+        except Exception as e:
+            logger.error(f'Error: {e}')
+            continue
+           
+        sentence_list.append(
+            add_linebreaks(vl0, LINE_LENGTH)
+        )
+        
+    return jsonify({'sentences': sentence_list}) 
 
 def bionic(w):
     return w
@@ -119,4 +155,4 @@ def add_linebreaks(p, line_length):
 
 if __name__ == "__main__":
     with app.app_context():
-        app.run(debug=True) 
+        app.run(debug=True, port=5000) 
